@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>BT keepalive</title>
+<style>
+  body { font: 13px -apple-system, sans-serif; background:#111; color:#bbb;
+         margin:0; padding:12px; }
+  #s { font-size:15px; font-weight:600; }
+  .ok { color:#4c9; } .bad { color:#e66; }
+  #d { margin-top:4px; font-size:11px; opacity:.65; }
+  button { margin-top:8px; font-size:13px; padding:5px 10px; }
+</style>
+</head>
+<body>
+
+<div id="s">starting…</div>
+<div id="d"></div>
+<button id="t">TEST TONE (audible)</button>
+
+<!-- Media-element playback: the same pipeline a YouTube tab uses. -->
+<audio id="a" src="silence48.wav" loop></audio>
+
+<script>
+const a = document.getElementById('a');
+const s = document.getElementById('s');
+const d = document.getElementById('d');
+
+a.volume = 1.0;   // file itself is near-silent (~-72 dBFS)
+
+function play() {
+  a.play().then(() => {
+    s.textContent = 'PLAYING';
+    s.className = 'ok';
+  }).catch(err => {
+    s.textContent = 'BLOCKED: ' + err.name;
+    s.className = 'bad';
+  });
+}
+play();
+
+// Restart if it ever stops (device change, suspend, error).
+setInterval(() => {
+  if (a.paused || a.ended) play();
+  d.textContent = 'paused=' + a.paused + ' · t=' + a.currentTime.toFixed(1) +
+                  's · ' + new Date().toLocaleTimeString();
+}, 2000);
+
+a.addEventListener('pause', play);
+a.addEventListener('error', play);
+
+// Audible probe: proves whether this page reaches the speaker at all.
+document.getElementById('t').onclick = () => {
+  const c = new AudioContext();
+  const o = c.createOscillator();
+  const g = c.createGain();
+  o.frequency.value = 440;
+  g.gain.value = 0.08;
+  o.connect(g).connect(c.destination);
+  o.start();
+  setTimeout(() => { o.stop(); c.close(); }, 2000);
+};
+</script>
+</body>
+</html>

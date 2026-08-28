@@ -1,0 +1,5 @@
+*.wav
+*.log
+.DS_Store
+profile/
+profile-edge/

@@ -15,10 +15,10 @@ echo
 # --- browser check ---------------------------------------------------------
 FOUND=""
 for candidate in \
-  "/Applications/Microsoft Edge.app" \
-  "/Applications/Google Chrome.app" \
   "/Applications/Brave Browser.app" \
-  "/Applications/Chromium.app"
+  "/Applications/Chromium.app" \
+  "/Applications/Microsoft Edge.app" \
+  "/Applications/Google Chrome.app"
 do
   [ -d "$candidate" ] && FOUND="$candidate" && break
 done

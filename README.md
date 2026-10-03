@@ -82,8 +82,15 @@ cd macos-bluetooth-audio-keepalive
 
 The installer generates the silent WAV, copies files to
 `/Users/Shared/btkeepalive`, writes and loads both LaunchAgents, and puts two
-shortcuts on your Desktop. It uses Microsoft Edge by default and falls back to
-Chrome; either works, since the mechanism is Chromium's media pipeline.
+shortcuts on your Desktop. It picks the first of Brave, Chromium, Microsoft
+Edge and Chrome that is installed; all work, since the mechanism is Chromium's
+media pipeline.
+
+**Use a browser you do not otherwise use.** The keepalive is a normal running
+instance of the browser it picks. If that is also your everyday browser,
+clicking its Dock icon opens windows inside the keepalive instance — on its
+empty isolated profile — and they close whenever the keepalive restarts.
+Installing Brave or Chromium just for this avoids that.
 
 Uninstall:
 

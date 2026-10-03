@@ -47,18 +47,32 @@ PY
 }
 
 # Sleep control: a continuous A2DP stream competes for the 2.4 GHz radio with
-# Bluetooth mice and keyboards, so only play while the app that needs the
-# speaker is in front, plus a grace period after it loses focus. The page
-# polls state.js and pauses or resumes its <audio> element accordingly.
+# Bluetooth mice and keyboards, so only play while it is needed, plus a grace
+# period afterwards. Needed means either the focus app is in front (so its
+# audio starts with no gap) or any other process is asking for audio output
+# (a browser tab reading aloud, for example). The page polls state.js and
+# pauses or resumes its <audio> element accordingly.
 FOCUS_APP="com.anthropic.claudefordesktop"
 GRACE=300
 STATE="$DIR/state.js"
+
+# coreaudiod takes a power assertion on behalf of every process with an open
+# output stream — including ones that are silent because the route is not yet
+# open. Ignore the keepalive's own browser.
+other_audio() {
+  local pid
+  for pid in $(pmset -g assertions | grep -A1 'coreaudiod' \
+      | sed -n 's/.*Created for PID: \([0-9]*\).*/\1/p'); do
+    ps -o args= -p "$pid" 2>/dev/null | grep -q 'btkeepalive/profile' || return 0
+  done
+  return 1
+}
 
 focus_loop() {
   local current="" want last_front=$SECONDS
   while true; do
     if lsappinfo info -only bundleid "$(lsappinfo front)" 2>/dev/null \
-        | grep -q "\"$FOCUS_APP\""; then
+        | grep -q "\"$FOCUS_APP\"" || other_audio; then
       last_front=$SECONDS
     fi
     if [ $((SECONDS - last_front)) -lt "$GRACE" ]; then want=true; else want=false; fi

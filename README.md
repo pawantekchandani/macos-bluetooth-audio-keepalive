@@ -61,10 +61,12 @@ normally.
 
 Runs as a LaunchAgent at login, with a watchdog that repairs it.
 
-**It sleeps when not needed.** The stream only plays while the app that needs
-the speaker (the Claude desktop app by default) is in front, and for five
-minutes after it loses focus. Outside that it pauses, so the Bluetooth radio is
-left free for mice and keyboards. Change `FOCUS_APP` and `GRACE` at the top of
+**It sleeps when not needed.** The stream plays while the app that needs the
+speaker (the Claude desktop app by default) is in front, or while any other
+process is asking for audio output — a browser tab reading aloud, for example —
+and for five minutes after. Outside that it pauses, so the Bluetooth radio is
+left free for mice and keyboards. Audio that starts while it is asleep is
+silent for the first couple of seconds until the keepalive wakes. Change `FOCUS_APP` and `GRACE` at the top of
 `src/run.sh` to target a different app or grace period.
 
 **Cost:** ~280 MB RAM, ~0% CPU, and one small window that must stay open.

@@ -58,27 +58,46 @@ STATE="$DIR/state.js"
 
 # coreaudiod takes a power assertion on behalf of every process with an open
 # output stream — including ones that are silent because the route is not yet
-# open. Ignore the keepalive's own browser.
-other_audio() {
+# open. Sets SELF (the keepalive's own browser) and OTHER (anything else).
+audio_holders() {
   local pid
+  SELF=0 OTHER=0
   for pid in $(pmset -g assertions | grep -A1 'coreaudiod' \
       | sed -n 's/.*Created for PID: \([0-9]*\).*/\1/p'); do
-    ps -o args= -p "$pid" 2>/dev/null | grep -q 'btkeepalive/profile' || return 0
+    if ps -o args= -p "$pid" 2>/dev/null | grep -q 'btkeepalive/profile'; then
+      SELF=1
+    else
+      OTHER=1
+    fi
   done
-  return 1
 }
 
 focus_loop() {
-  local current="" want last_front=$SECONDS
+  local current="" want last_front=$SECONDS stalled=0
   while true; do
-    if lsappinfo info -only bundleid "$(lsappinfo front)" 2>/dev/null \
-        | grep -q "\"$FOCUS_APP\"" || other_audio; then
+    audio_holders
+    if [ "$OTHER" = 1 ] || lsappinfo info -only bundleid "$(lsappinfo front)" \
+        2>/dev/null | grep -q "\"$FOCUS_APP\""; then
       last_front=$SECONDS
     fi
     if [ $((SECONDS - last_front)) -lt "$GRACE" ]; then want=true; else want=false; fi
     if [ "$want" != "$current" ]; then
       echo "window.KEEPALIVE_ON = $want;" > "$STATE.tmp" && mv "$STATE.tmp" "$STATE"
       current=$want
+    fi
+
+    # Meant to be playing but the browser holds no output stream: the page has
+    # stalled. It does this with every process still running and no error, so
+    # nothing else notices. Kill it; the supervisor loop below relaunches it.
+    if [ "$current" = true ] && [ "$SELF" = 0 ]; then
+      stalled=$((stalled + 1))
+      if [ "$stalled" -ge 15 ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] playback stalled, restarting browser" >&2
+        pkill -f 'btkeepalive/profile' 2>/dev/null
+        stalled=-15   # allow time for the relaunch before checking again
+      fi
+    else
+      stalled=0
     fi
     sleep 2
   done
@@ -102,6 +121,7 @@ while true; do
     --no-default-browser-check \
     --disable-background-timer-throttling \
     --disable-renderer-backgrounding \
+    --disable-backgrounding-occluded-windows \
     --disable-sync \
     --window-size=340,120 \
     --window-position=40,40

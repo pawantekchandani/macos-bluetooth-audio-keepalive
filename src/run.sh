@@ -46,6 +46,35 @@ except Exception:
 PY
 }
 
+# Sleep control: a continuous A2DP stream competes for the 2.4 GHz radio with
+# Bluetooth mice and keyboards, so only play while the app that needs the
+# speaker is in front, plus a grace period after it loses focus. The page
+# polls state.js and pauses or resumes its <audio> element accordingly.
+FOCUS_APP="com.anthropic.claudefordesktop"
+GRACE=300
+STATE="$DIR/state.js"
+
+focus_loop() {
+  local current="" want last_front=$SECONDS
+  while true; do
+    if lsappinfo info -only bundleid "$(lsappinfo front)" 2>/dev/null \
+        | grep -q "\"$FOCUS_APP\""; then
+      last_front=$SECONDS
+    fi
+    if [ $((SECONDS - last_front)) -lt "$GRACE" ]; then want=true; else want=false; fi
+    if [ "$want" != "$current" ]; then
+      echo "window.KEEPALIVE_ON = $want;" > "$STATE.tmp" && mv "$STATE.tmp" "$STATE"
+      current=$want
+    fi
+    sleep 2
+  done
+}
+
+focus_loop &
+FOCUS_PID=$!
+echo "$FOCUS_PID" > "$DIR/focus.pid"
+trap 'kill "$FOCUS_PID" 2>/dev/null' EXIT
+
 while true; do
   clear_crash_flag
   "$BROWSER" \

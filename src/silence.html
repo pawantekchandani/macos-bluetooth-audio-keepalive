@@ -28,7 +28,12 @@ const d = document.getElementById('d');
 
 a.volume = 1.0;   // file itself is near-silent (~-72 dBFS)
 
+// Sleep control: run.sh writes state.js (window.KEEPALIVE_ON = true|false).
+// A missing or unreadable file means stay on.
+let on = true;
+
 function play() {
+  if (!on) return;
   a.play().then(() => {
     s.textContent = 'PLAYING';
     s.className = 'ok';
@@ -39,8 +44,25 @@ function play() {
 }
 play();
 
+function pollState() {
+  const el = document.createElement('script');
+  el.src = 'state.js?t=' + Date.now();
+  el.onload = el.onerror = () => {
+    el.remove();
+    const want = window.KEEPALIVE_ON !== false;
+    if (want === on) return;
+    on = want;
+    if (on) { play(); return; }
+    a.pause();
+    s.textContent = 'SLEEPING';
+    s.className = '';
+  };
+  document.head.appendChild(el);
+}
+
 // Restart if it ever stops (device change, suspend, error).
 setInterval(() => {
+  pollState();
   if (a.paused || a.ended) play();
   d.textContent = 'paused=' + a.paused + ' · t=' + a.currentTime.toFixed(1) +
                   's · ' + new Date().toLocaleTimeString();

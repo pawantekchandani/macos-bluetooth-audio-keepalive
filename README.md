@@ -61,6 +61,12 @@ normally.
 
 Runs as a LaunchAgent at login, with a watchdog that repairs it.
 
+**It sleeps when not needed.** The stream only plays while the app that needs
+the speaker (the Claude desktop app by default) is in front, and for five
+minutes after it loses focus. Outside that it pauses, so the Bluetooth radio is
+left free for mice and keyboards. Change `FOCUS_APP` and `GRACE` at the top of
+`src/run.sh` to target a different app or grace period.
+
 **Cost:** ~280 MB RAM, ~0% CPU, and one small window that must stay open.
 That is a lot for what it does. It is also the only thing that worked.
 
@@ -118,9 +124,11 @@ the health check first and **abandoned** — the built-in output device reports
 No. Input devices use HID, which has no audio stream, no codec, and never
 touches CoreAudio. None of the failing layers exist for them.
 
-One real interaction: this keepalive streams A2DP continuously, which shares
-the 2.4 GHz radio with your other Bluetooth devices. If you notice mouse lag
-after installing, stop the keepalive and see whether it clears.
+One real interaction: while playing, this keepalive streams A2DP continuously,
+which shares the 2.4 GHz radio with your other Bluetooth devices. Streaming
+around the clock caused measurable mouse and keyboard lag and disconnects,
+which is why it now sleeps when the target app is out of focus. If you still
+notice lag, stop the keepalive and see whether it clears.
 
 ## Is the gate documented in the Bluetooth spec?
 

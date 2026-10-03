@@ -10,13 +10,16 @@ DIR="/Users/Shared/btkeepalive"
 PROFILE="$DIR/profile"
 PREFS="$PROFILE/Default/Preferences"
 
-# Edge first, then Chrome. Either works — the mechanism is Chromium's media
-# pipeline, not anything specific to one browser.
+# Prefer a browser that is not used for anything else. The keepalive is a
+# normal running instance of whichever browser it picks: clicking that
+# browser's Dock icon opens windows inside it, on this isolated profile, and
+# they close whenever the keepalive restarts. Any Chromium browser works —
+# the mechanism is Chromium's media pipeline.
 for candidate in \
-  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" \
-  "/Applications/Chromium.app/Contents/MacOS/Chromium"
+  "/Applications/Chromium.app/Contents/MacOS/Chromium" \
+  "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge" \
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 do
   if [ -x "$candidate" ]; then BROWSER="$candidate"; break; fi
 done

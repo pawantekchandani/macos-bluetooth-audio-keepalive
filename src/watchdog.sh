@@ -58,7 +58,17 @@ if ! launchctl print "gui/$UID/$LABEL" >/dev/null 2>&1; then
   exit 0
 fi
 
-# 2. Audio actually playing? Re-check before acting, so a brief gap during an
+# 2. Asleep on purpose? The keepalive pauses while the app that needs the
+#    speaker is out of focus (see run.sh), so no audio is expected — but only
+#    if the loop that would wake it again is still alive.
+if grep -q 'false' "$DIR/state.js" 2>/dev/null; then
+  if ! kill -0 "$(cat "$DIR/focus.pid" 2>/dev/null)" 2>/dev/null; then
+    restart "asleep but sleep-control loop is dead"
+  fi
+  exit 0
+fi
+
+# 3. Audio actually playing? Re-check before acting, so a brief gap during an
 #    output-device switch does not trigger a needless restart.
 if ! audio_active; then
   sleep 10

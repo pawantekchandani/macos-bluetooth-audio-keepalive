@@ -103,7 +103,7 @@ Two Desktop shortcuts:
 
 ## Reliability notes
 
-In practice this setup failed in three distinct ways, and the watchdog exists
+In practice this setup failed in four distinct ways, and the watchdog exists
 because of them:
 
 1. **The launchd service was evicted from the user domain**, twice — the
@@ -112,10 +112,23 @@ because of them:
 3. **An unclean shutdown left the profile with `exit_type: Crashed`**, so the
    browser came back on a restore prompt with no audio playing
 
-Number 3 is the nasty one: every process is running and `launchctl list` looks
+4. **The page stopped playing with nothing visibly wrong** — every process
+   alive, no error, the output stream simply closed and never reopened
+
+Numbers 3 and 4 are the nasty ones: every process is running and `launchctl list` looks
 healthy, but there is no sound. **Checking that the process exists proves
 nothing.** The watchdog therefore tests for Chromium's `audio.mojom.AudioService`
 subprocess, which exists only while audio is actually in use.
+
+Number 4 is the browser throttling a window it considers hidden: once the
+window is covered, the page's timers slow to a crawl and it stops responding.
+`--disable-backgrounding-occluded-windows` prevents that (resume after a pause
+went from 30-60+ seconds to 1-2).
+
+As a backstop, even that subprocess survives a stalled page, so `run.sh` also checks every two
+seconds that the browser really holds an output stream (a `coreaudiod` power
+assertion created for one of its processes) and restarts it after 30 seconds
+without one.
 
 A CoreAudio `kAudioDevicePropertyDeviceIsRunningSomewhere` query was tried as
 the health check first and **abandoned** — the built-in output device reports

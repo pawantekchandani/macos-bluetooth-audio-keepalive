@@ -59,7 +59,9 @@ WAV through an `<audio loop>` element. That holds the output device in whatever
 state macOS needs, and other apps' audio then routes to the Bluetooth speaker
 normally.
 
-Runs as a LaunchAgent at login, with a watchdog that repairs it.
+Runs as a launchd agent with a watchdog that repairs it. It does not start at
+login: start it with the **Restart BT Keepalive** shortcut when you want the
+speaker.
 
 **It sleeps when not needed.** The stream plays while the app that needs the
 speaker (the Claude desktop app by default) is in front, or while any other
@@ -81,7 +83,8 @@ cd macos-bluetooth-audio-keepalive
 ```
 
 The installer generates the silent WAV, copies files to
-`/Users/Shared/btkeepalive`, writes and loads both LaunchAgents, and puts two
+`/Users/Shared/btkeepalive`, writes and loads both launchd agents (kept in
+`/Users/Shared/btkeepalive/launchd`, so nothing starts at login), and puts two
 shortcuts on your Desktop. It picks the first of Brave, Chromium, Microsoft
 Edge and Chrome that is installed; all work, since the mechanism is Chromium's
 media pipeline.
@@ -107,6 +110,18 @@ Two Desktop shortcuts:
 - **Stop BT Keepalive** — stops it when you won't need the speaker for a while.
   It stops the watchdog *first*, otherwise the watchdog would restart the
   keepalive within two minutes
+
+**Optional: stop by itself when the speaker is gone.** Put part of your
+speaker's Bluetooth name in `/Users/Shared/btkeepalive/speaker.name`:
+
+```bash
+echo "Stone" > /Users/Shared/btkeepalive/speaker.name
+```
+
+The watchdog then checks every five minutes, and once no connected Bluetooth
+device has that text in its name for two checks in a row it stops the
+keepalive, the browser and itself. Use **Restart BT Keepalive** to start again.
+Without the file, nothing stops by itself.
 
 ## Reliability notes
 

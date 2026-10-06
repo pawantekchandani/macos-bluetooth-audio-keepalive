@@ -13,7 +13,7 @@
 # "running" permanently, so it never detects a failure.
 
 LABEL="com.local.btkeepalive"
-PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+PLIST="/Users/Shared/btkeepalive/launchd/$LABEL.plist"
 DIR="/Users/Shared/btkeepalive"
 LOG="$DIR/watchdog.log"
 
@@ -51,6 +51,50 @@ restart() {
     log "REPAIR: bootstrap FAILED"
   fi
 }
+
+# 0. Speaker gone? Optional, off by default. Put part of your speaker's
+#    Bluetooth name in $DIR/speaker.name to turn it on, for example:
+#        echo "Stone" > /Users/Shared/btkeepalive/speaker.name
+#    Checked every 5 minutes. If no connected Bluetooth device has that text
+#    in its name on two checks in a row (so absent 5+ minutes), stop the
+#    keepalive, the browser and this watchdog. Start again with the
+#    "Restart BT Keepalive" Desktop shortcut.
+SPEAKER=$(head -n 1 "$DIR/speaker.name" 2>/dev/null)
+CHECK_EVERY=300
+STAMP="$DIR/speaker.lastcheck"
+ABSENT="$DIR/speaker.absent"
+
+speaker_connected() {
+  system_profiler SPBluetoothDataType -json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)["SPBluetoothDataType"][0]
+except Exception:
+    sys.exit(0)  # cannot tell -> assume connected, never stop on a failed read
+names = [n for d in data.get("device_connected", []) for n in d]
+sys.exit(0 if any(sys.argv[1].lower() in n.lower() for n in names) else 1)
+' "$SPEAKER"
+}
+
+now=$(date +%s)
+last=$(cat "$STAMP" 2>/dev/null || echo 0)
+# A long gap means the keepalive was off in between: an old absence no longer counts.
+[ $((now - last)) -gt $((CHECK_EVERY * 3)) ] && rm -f "$ABSENT"
+if [ -n "$SPEAKER" ] && [ $((now - last)) -ge "$CHECK_EVERY" ]; then
+  echo "$now" > "$STAMP"
+  if speaker_connected; then
+    rm -f "$ABSENT"
+  elif [ -f "$ABSENT" ]; then
+    log "STOP: no \"$SPEAKER\" speaker connected for 5+ minutes — stopping keepalive"
+    rm -f "$ABSENT" "$STAMP"
+    launchctl bootout "gui/$UID/$LABEL" 2>/dev/null
+    pkill -f 'btkeepalive/profile' 2>/dev/null
+    launchctl bootout "gui/$UID/$LABEL.watchdog" 2>/dev/null  # this script; keep last
+    exit 0
+  else
+    touch "$ABSENT"
+  fi
+fi
 
 # 1. Service present?
 if ! launchctl print "gui/$UID/$LABEL" >/dev/null 2>&1; then

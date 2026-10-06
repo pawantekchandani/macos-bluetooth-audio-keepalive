@@ -15,6 +15,7 @@ launchctl bootout "gui/$UID/$LABEL"    2>/dev/null && echo "  keepalive stopped"
 pkill -f 'btkeepalive/profile' 2>/dev/null && echo "  browser window closed"
 sleep 2
 
+# Agent files now live in $DIR/launchd; this clears ones left by earlier versions.
 rm -f "$AGENTS/$LABEL.plist" "$AGENTS/$WATCHDOG.plist" && echo "  agents removed"
 rm -f "$HOME/Desktop/Restart BT Keepalive.command" \
       "$HOME/Desktop/Stop BT Keepalive.command" && echo "  shortcuts removed"

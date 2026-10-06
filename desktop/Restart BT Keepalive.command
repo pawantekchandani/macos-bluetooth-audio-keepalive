@@ -2,9 +2,9 @@
 # Double-click to restart the Bluetooth audio keepalive.
 
 LABEL="com.local.btkeepalive"
-PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
+PLIST="/Users/Shared/btkeepalive/launchd/$LABEL.plist"
 WATCHDOG="com.local.btkeepalive.watchdog"
-WATCHDOG_PLIST="$HOME/Library/LaunchAgents/$WATCHDOG.plist"
+WATCHDOG_PLIST="/Users/Shared/btkeepalive/launchd/$WATCHDOG.plist"
 
 # Snapshot ps first so the grep processes cannot match their own pattern.
 audio_active() {

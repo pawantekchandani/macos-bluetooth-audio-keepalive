@@ -1,10 +1,14 @@
 #!/bin/bash
-# Installs the Bluetooth audio keepalive: files into /Users/Shared/btkeepalive,
-# two LaunchAgents, and two Desktop shortcuts.
+# Installs the Bluetooth audio keepalive: files and two launchd agents into
+# /Users/Shared/btkeepalive, and two Desktop shortcuts.
+#
+# The agent files live in $DIR/launchd, not ~/Library/LaunchAgents, so the
+# keepalive does not start at login: start it with "Restart BT Keepalive".
 set -e
 
 DIR="/Users/Shared/btkeepalive"
-AGENTS="$HOME/Library/LaunchAgents"
+AGENTS="$DIR/launchd"
+OLD_AGENTS="$HOME/Library/LaunchAgents"
 LABEL="com.local.btkeepalive"
 WATCHDOG="com.local.btkeepalive.watchdog"
 SRC="$(cd "$(dirname "$0")" && pwd)"
@@ -45,6 +49,8 @@ echo "  audio:   $DIR/silence48.wav"
 
 # --- launch agents ---------------------------------------------------------
 mkdir -p "$AGENTS"
+# Earlier versions installed into ~/Library/LaunchAgents, which starts at login.
+rm -f "$OLD_AGENTS/$LABEL.plist" "$OLD_AGENTS/$WATCHDOG.plist"
 
 cat > "$AGENTS/$LABEL.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
